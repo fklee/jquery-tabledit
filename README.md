@@ -1,3 +1,5 @@
+# Fork By Fklee to add specific configurations for PMU projects
+
 # jQuery-Tabledit v1.2.3
 Inline editor for HTML tables compatible with Bootstrap.
 
