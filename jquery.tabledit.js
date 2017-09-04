@@ -120,12 +120,42 @@ if (typeof jQuery === 'undefined') {
 
                             // Create span element.
                             var span = '<span class="tabledit-span">' + text + '</span>';
+                            var input = '' ;
+                            var name = $(this).data('id') ;
+                            
+                            switch(settings.columns.editable[i][1]) {
+                                case 'text':
+                                    input = '<input class="tabledit-input ' + settings.inputClass + '" type="text" name="' + name + '" value="' + text + '" style="display: none;" disabled>';
+                                    break;
+                                case 'select':
+                                    input = '<select class="tabledit-input ' + settings.inputClass + '" name="' + name + '" style="display: none;" disabled>';
+                                    var val = $(this).data('value') ;
+                                    // Create options for select element.
+                                    $.each(jQuery.parseJSON(settings.columns.editable[i][2]), function(index, value) {
+                                        if (index == val) {
+                                            input += '<option value="' + index + '" selected>' + value + '</option>';
+                                        } else {
+                                            input += '<option value="' + index + '">' + value + '</option>';
+                                        }
+                                    });
 
+                                    // Create last piece of select element.
+                                    input += '</select>';
+                                    
+                                    break;
+                                case 'date':                                    
+                                    var val = $(this).data('value') ;
+                                    input = '<input class="tabledit-input ' + settings.inputClass + '" type="date" name="' + name + '" value="' + val + '" style="display: none;" disabled>';
+                                    break;   
+                                default:
+                                    input = '' ;
+                            }
+                            /*
                             // Check if exists the third parameter of editable array.
                             if (typeof settings.columns.editable[i][2] !== 'undefined') {
                                 // Create select element.
                                 var input = '<select class="tabledit-input ' + settings.inputClass + '" name="' + settings.columns.editable[i][1] + '" style="display: none;" disabled>';
-
+                                
                                 // Create options for select element.
                                 $.each(jQuery.parseJSON(settings.columns.editable[i][2]), function(index, value) {
                                     if (text === value) {
@@ -141,6 +171,7 @@ if (typeof jQuery === 'undefined') {
                                 // Create text input element.
                                 var input = '<input class="tabledit-input ' + settings.inputClass + '" type="text" name="' + settings.columns.editable[i][1] + '" value="' + $(this).text() + '" style="display: none;" disabled>';
                             }
+                            */
 
                             // Add elements and class "view" to table cell.
                             $(this).html(span + input);
@@ -261,7 +292,12 @@ if (typeof jQuery === 'undefined') {
                     if ($input.is('select')) {
                         $input.find('option').filter(function() {
                             return $.trim($(this).text()) === text;
-                        }).attr('selected', true);
+                        }).attr('selected', true);                        
+                    } else if($input.prop("type") == 'date'){
+                        if ($input.val() != '') {
+                            var date = new Date($input.val());
+                            $(this).find('.tabledit-span').text( date.getDate() + '.' +  (date.getMonth() + 1) + '.' +  date.getFullYear());
+                        }                       
                     } else {
                         $input.val(text);
                     }
@@ -290,6 +326,31 @@ if (typeof jQuery === 'undefined') {
                     Mode.view(this);
                 });
 
+                // Set last edited column and row.
+                $lastEditedRow = $(td).parent('tr');
+            },
+            updateLocal: function(td){
+                
+                $(td).each(function() {
+                    // Get input element.
+                    var $input = $(this).find('.tabledit-input');
+
+                    // Set span text with input/select new value.
+                    if ($input.prop("type") == "select-one") {
+                        $(this).find('.tabledit-span').text($input.find('option:selected').text());
+                        
+                    } else if($input.prop("type") == 'date'){
+                        
+                        if ($input.val() != '') {
+                            var date = new Date($input.val());
+                            $(this).find('.tabledit-span').text( date.getDate() + '.' +  (date.getMonth() + 1) + '.' +  date.getFullYear());
+                        }
+                       
+                    } else if($input.prop("type") == 'text') {
+                        $(this).find('.tabledit-span').text($input.val());
+                    }
+                });
+                
                 // Set last edited column and row.
                 $lastEditedRow = $(td).parent('tr');
             }
@@ -369,7 +430,7 @@ if (typeof jQuery === 'undefined') {
          */
         function ajax(action)
         {
-            var serialize = $table.find('.tabledit-input').serialize()
+            var serialize = $table.find('.tabledit-input').serialize() ;
 
             if (!serialize) {
                 return false;
@@ -569,7 +630,22 @@ if (typeof jQuery === 'undefined') {
                 }
             });
         }
+        
+        $table.on('change', function(event){
+            var $input = $table.find('.tabledit-input:visible');
+            var $button = $table.find('.tabledit-confirm-button');
 
+            if ($input.length > 0) {
+                var $td = $input.parents('td');
+            } else if ($button.length > 0) {
+                var $td = $button.parents('td');
+            } else {
+                return;
+            }
+            
+            Edit.updateLocal($td) ;
+        });
+        
         /**
          * Keyup event on table element.
          * 
